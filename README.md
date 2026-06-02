@@ -2,10 +2,10 @@
 
 Multi-workspace task management. Built for the Aspio fullstack take-home.
 
-- **Live URL** — _add your Vercel deployment URL here_
+- **Live URL** — <https://aspio-tasks.vercel.app>
 - **GitHub** — <https://github.com/ibxbit/aspio-tasks>
-- **Start time** — 2026-06-02, ~12:42 local
-- **End time** — _fill in just before sending the submission email_
+- **Start time** — 2026-06-02, ~12:42 EAT (UTC+3)
+- **End time** — 2026-06-02, ~23:55 EAT (UTC+3)
 
 ## Demo accounts
 
