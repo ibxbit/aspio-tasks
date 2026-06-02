@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectView, type TaskStatus, type Member, type Task } from "./project-view";
+import { OverdueTasksButton } from "./overdue-tasks-button";
 
 export async function generateMetadata({
   params,
@@ -111,18 +112,23 @@ export default async function ProjectPage({
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Link
-            href={`/w/${wid}`}
-            className="font-medium hover:text-foreground hover:underline"
-          >
-            {ws?.name ?? "Workspace"}
-          </Link>
-          <span aria-hidden>/</span>
-          <span>Projects</span>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Link
+              href={`/w/${wid}`}
+              className="font-medium hover:text-foreground hover:underline"
+            >
+              {ws?.name ?? "Workspace"}
+            </Link>
+            <span aria-hidden>/</span>
+            <span>Projects</span>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {project.name}
+          </h1>
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
+        <OverdueTasksButton projectId={project.id} />
       </header>
 
       <ProjectView
