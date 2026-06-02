@@ -21,6 +21,8 @@ drop table if exists public.profiles cascade;
 
 drop trigger if exists on_auth_user_created on auth.users;
 
+drop function if exists public.rpc_create_project(uuid, text);
+drop function if exists public.rpc_create_workspace(text);
 drop function if exists public.handle_new_workspace();
 drop function if exists public.handle_new_user();
 drop function if exists public.is_workspace_owner(uuid);
@@ -304,6 +306,70 @@ grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant select on public.profiles to anon;
 grant usage, select on all sequences in schema public to authenticated;
+
+-- ============================================================
+-- RPC functions for create flows
+--
+-- Workspace + project creation goes through SECURITY DEFINER RPCs rather
+-- than direct INSERTs from the client. Two reasons:
+--   1. The function owns the auth check, so the policy can stay simple.
+--   2. It atomically handles secondary side effects (e.g. workspace_members
+--      owner row) without splitting them across client and trigger logic.
+-- ============================================================
+create or replace function public.rpc_create_workspace(workspace_name text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  new_id uuid;
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Not authenticated' using errcode = '28000';
+  end if;
+  if coalesce(length(trim(workspace_name)), 0) not between 1 and 80 then
+    raise exception 'Invalid workspace name' using errcode = '22023';
+  end if;
+  insert into public.workspaces (name) values (trim(workspace_name)) returning id into new_id;
+  return new_id;
+end;
+$$;
+
+create or replace function public.rpc_create_project(target_workspace_id uuid, project_name text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  new_id uuid;
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Not authenticated' using errcode = '28000';
+  end if;
+  if not exists (
+    select 1 from public.workspace_members
+    where workspace_id = target_workspace_id and user_id = uid
+  ) then
+    raise exception 'Not a member of this workspace' using errcode = '42501';
+  end if;
+  if coalesce(length(trim(project_name)), 0) not between 1 and 80 then
+    raise exception 'Invalid project name' using errcode = '22023';
+  end if;
+  insert into public.projects (workspace_id, name)
+    values (target_workspace_id, trim(project_name))
+    returning id into new_id;
+  return new_id;
+end;
+$$;
+
+revoke execute on function public.rpc_create_workspace(text) from public;
+revoke execute on function public.rpc_create_project(uuid, text) from public;
+grant execute on function public.rpc_create_workspace(text) to authenticated;
+grant execute on function public.rpc_create_project(uuid, text) to authenticated;
 
 -- ============================================================
 -- Realtime

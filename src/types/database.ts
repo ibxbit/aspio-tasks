@@ -24,7 +24,16 @@ export type Database = {
   public: {
     Tables: Record<string, GenericTable>;
     Views: Record<string, GenericTable>;
-    Functions: Record<string, never>;
+    Functions: {
+      rpc_create_workspace: {
+        Args: { workspace_name: string };
+        Returns: string;
+      };
+      rpc_create_project: {
+        Args: { target_workspace_id: string; project_name: string };
+        Returns: string;
+      };
+    };
     Enums: {
       task_status: "todo" | "in_progress" | "done";
       member_role: "owner" | "member";
