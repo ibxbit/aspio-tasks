@@ -31,11 +31,13 @@ export function WorkspaceSwitcher({ workspaces }: Props): React.ReactElement {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm font-medium shadow-xs transition-colors hover:bg-muted focus-ring"
+        className="flex w-full max-w-full items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm font-medium shadow-xs transition-colors hover:bg-muted focus-ring sm:w-auto"
         aria-label="Switch workspace"
       >
-        <span className="max-w-[10rem] truncate">{current?.name ?? "Workspaces"}</span>
-        <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="min-w-0 truncate sm:max-w-[12rem]">
+          {current?.name ?? "Workspaces"}
+        </span>
+        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="min-w-[14rem]">

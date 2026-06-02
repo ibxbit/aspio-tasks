@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { CardCorners } from "@/components/ui/card-corners";
 import { CreateProjectForm } from "./create-project-form";
 
 type TaskStatus = "todo" | "in_progress" | "done";
@@ -108,8 +109,9 @@ export default async function WorkspacePage({
               <li key={p.id}>
                 <Link
                   href={`/w/${wid}/p/${p.id}`}
-                  className="group block rounded-lg border border-border bg-surface p-4 shadow-xs transition-[border-color,box-shadow,transform] hover:border-border-strong hover:shadow-sm focus-ring"
+                  className="group relative block border border-border bg-surface p-4 shadow-xs transition-[border-color,box-shadow,transform] hover:border-border-strong hover:shadow-sm focus-ring"
                 >
+                  <CardCorners />
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-0.5">
                       <h3 className="truncate text-sm font-semibold tracking-tight">

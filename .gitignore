@@ -46,6 +46,7 @@ supabase/.env
 .local/
 .claude/
 docs/
+image.png
 
 # typescript
 *.tsbuildinfo
