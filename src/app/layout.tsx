@@ -19,10 +19,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Aspio Tasks",
-    template: "%s — Aspio Tasks",
-  },
+  title: "Aspio Tasks",
   description: "Multi-workspace task management.",
   applicationName: "Aspio Tasks",
   robots: { index: false, follow: false },
