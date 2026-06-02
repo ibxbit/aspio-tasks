@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { useRealtimeTasks } from "@/lib/realtime/use-realtime-tasks";
 import { TaskFilters } from "./task-filters";
 import { TaskRow } from "./task-row";
 import { TaskDetailSheet } from "./task-detail-sheet";
@@ -38,12 +39,40 @@ type Props = {
 export function ProjectView({
   projectId,
   workspaceId,
-  tasks,
+  tasks: initialTasks,
   members,
 }: Props): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [openTaskId, setOpenTaskId] = React.useState<string | null>(null);
+
+  // Lift tasks into state so realtime events can patch them in place.
+  // We track the last initial array we saw so a server-side revalidation
+  // (router.refresh) replaces our state cleanly.
+  const [tasks, setTasks] = React.useState<Task[]>(initialTasks);
+  const [lastSeenInitial, setLastSeenInitial] = React.useState(initialTasks);
+  if (initialTasks !== lastSeenInitial) {
+    setLastSeenInitial(initialTasks);
+    setTasks(initialTasks);
+  }
+
+  const handlers = React.useMemo(
+    () => ({
+      onInsert: (t: Task) => {
+        setTasks((prev) =>
+          prev.some((p) => p.id === t.id) ? prev : [t, ...prev],
+        );
+      },
+      onUpdate: (t: Task) => {
+        setTasks((prev) => prev.map((p) => (p.id === t.id ? t : p)));
+      },
+      onDelete: (id: string) => {
+        setTasks((prev) => prev.filter((p) => p.id !== id));
+      },
+    }),
+    [],
+  );
+  useRealtimeTasks(projectId, handlers);
 
   const statusFilter = React.useMemo<Set<TaskStatus>>(() => {
     const raw = searchParams.get("status");
