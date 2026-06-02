@@ -86,6 +86,16 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
 @media (prefers-color-scheme: dark) {
   @theme inline {
     --color-background: oklch(0.16 0.01 260);
