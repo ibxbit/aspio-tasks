@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Calendar, ChevronRight, UserRound } from "lucide-react";
 import { format, parseISO, isPast, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -13,8 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { updateTask } from "./actions";
-import type { Member, Task, TaskStatus } from "./project-view";
+import type { Member, Task, TaskPatch, TaskStatus } from "./project-view";
 
 const STATUS_META: Record<TaskStatus, { label: string; cls: string }> = {
   todo: {
@@ -33,53 +31,40 @@ const STATUS_META: Record<TaskStatus, { label: string; cls: string }> = {
 
 type Props = {
   task: Task;
-  workspaceId: string;
   members: Member[];
   onOpen: () => void;
-  onError: (msg: string) => void;
+  onUpdate: (patch: TaskPatch) => void;
 };
 
 export function TaskRow({
   task,
-  workspaceId,
   members,
   onOpen,
-  onError,
+  onUpdate,
 }: Props): React.ReactElement {
-  const router = useRouter();
-  const [, startTransition] = React.useTransition();
-
-  const runUpdate = (patch: Parameters<typeof updateTask>[0]["patch"]): void => {
-    startTransition(async () => {
-      const res = await updateTask({ taskId: task.id, workspaceId, patch });
-      if (!res.ok) onError(res.error);
-      else router.refresh();
-    });
-  };
-
   return (
     <div className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/40">
       <StatusButton
         status={task.status}
-        onChange={(s) => runUpdate({ status: s })}
+        onChange={(s) => onUpdate({ status: s })}
       />
 
       <TitleField
         title={task.title}
-        onSave={(next) => runUpdate({ title: next })}
+        onSave={(next) => onUpdate({ title: next })}
         onOpen={onOpen}
       />
 
       <AssigneeButton
         assigneeId={task.assigneeId}
         members={members}
-        onChange={(id) => runUpdate({ assignee_id: id })}
+        onChange={(id) => onUpdate({ assignee_id: id })}
       />
 
       <DueDateField
         dueDate={task.dueDate}
         status={task.status}
-        onChange={(d) => runUpdate({ due_date: d })}
+        onChange={(d) => onUpdate({ due_date: d })}
       />
 
       <button

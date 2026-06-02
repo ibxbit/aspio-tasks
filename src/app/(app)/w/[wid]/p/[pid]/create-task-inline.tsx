@@ -2,37 +2,24 @@
 
 import * as React from "react";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createTask } from "./actions";
 
 type Props = {
-  projectId: string;
-  workspaceId: string;
-  onError: (msg: string) => void;
+  onCreate: (title: string) => Promise<void>;
 };
 
-export function CreateTaskInline({
-  projectId,
-  workspaceId,
-  onError,
-}: Props): React.ReactElement {
-  const router = useRouter();
+export function CreateTaskInline({ onCreate }: Props): React.ReactElement {
   const [title, setTitle] = React.useState("");
   const [isPending, startTransition] = React.useTransition();
 
   const submit = (): void => {
     const trimmed = title.trim();
     if (trimmed.length === 0) return;
+    // Clear the field immediately — the parent applies an optimistic row.
+    setTitle("");
     startTransition(async () => {
-      const res = await createTask({ projectId, workspaceId, title: trimmed });
-      if (!res.ok) {
-        onError(res.error);
-        return;
-      }
-      setTitle("");
-      router.refresh();
+      await onCreate(trimmed);
     });
   };
 

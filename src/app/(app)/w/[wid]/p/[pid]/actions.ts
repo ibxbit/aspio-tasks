@@ -97,7 +97,9 @@ export async function deleteTask(input: {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("tasks").delete().eq("id", id.data);
+  const { error } = await supabase.rpc("rpc_delete_task", {
+    target_task_id: id.data,
+  });
 
   if (error) return { ok: false, error: error.message };
 

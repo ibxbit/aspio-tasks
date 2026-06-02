@@ -8,6 +8,7 @@ import { TaskFilters } from "./task-filters";
 import { TaskRow } from "./task-row";
 import { TaskDetailSheet } from "./task-detail-sheet";
 import { CreateTaskInline } from "./create-task-inline";
+import { createTask, deleteTask, updateTask } from "./actions";
 
 export type TaskStatus = "todo" | "in_progress" | "done";
 
@@ -27,7 +28,32 @@ export type Task = {
   createdAt: string;
 };
 
+export type TaskPatch = {
+  title?: string;
+  description?: string | null;
+  status?: TaskStatus;
+  assignee_id?: string | null;
+  due_date?: string | null;
+};
+
+export type TaskActions = {
+  updateTask: (taskId: string, patch: TaskPatch) => Promise<void>;
+  createTask: (title: string) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+};
+
 const ALL_STATUSES: readonly TaskStatus[] = ["todo", "in_progress", "done"];
+
+function applyPatch(task: Task, patch: TaskPatch): Task {
+  return {
+    ...task,
+    ...(patch.title !== undefined && { title: patch.title }),
+    ...(patch.description !== undefined && { description: patch.description }),
+    ...(patch.status !== undefined && { status: patch.status }),
+    ...(patch.assignee_id !== undefined && { assigneeId: patch.assignee_id }),
+    ...(patch.due_date !== undefined && { dueDate: patch.due_date }),
+  };
+}
 
 type Props = {
   projectId: string;
@@ -56,6 +82,14 @@ export function ProjectView({
     setTasks(initialTasks);
   }
 
+  // Ref mirrors current state so the memoised mutation helpers can read the
+  // *latest* tasks without re-running their useMemo, and without relying on
+  // setTasks side effects (which queue and don't execute synchronously).
+  const tasksRef = React.useRef<Task[]>(tasks);
+  React.useEffect(() => {
+    tasksRef.current = tasks;
+  });
+
   const handlers = React.useMemo(
     () => ({
       onInsert: (t: Task) => {
@@ -73,6 +107,105 @@ export function ProjectView({
     [],
   );
   useRealtimeTasks(projectId, handlers);
+
+  // Optimistic mutations: update local state immediately, then call the
+  // server action. If the action returns an error OR throws (e.g. network
+  // failure), restore the previous snapshot and surface a toast. The
+  // realtime broadcast for our own successful change is idempotent because
+  // the merge keys on task id.
+  const actions = React.useMemo<TaskActions>(
+    () => ({
+      updateTask: async (taskId, patch) => {
+        const snapshot = tasksRef.current.find((t) => t.id === taskId);
+        if (!snapshot) return;
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? applyPatch(t, patch) : t)),
+        );
+
+        const rollback = (message: string): void => {
+          setTasks((prev) =>
+            prev.map((t) => (t.id === taskId ? snapshot : t)),
+          );
+          toast.error(message);
+        };
+
+        try {
+          const res = await updateTask({ taskId, workspaceId, patch });
+          if (!res.ok) rollback(res.error || "Couldn't save your change.");
+        } catch {
+          rollback("Couldn't save — check your connection.");
+        }
+      },
+
+      createTask: async (title) => {
+        const trimmed = title.trim();
+        if (trimmed.length === 0) return;
+        const tempId = `temp-${crypto.randomUUID()}`;
+        const optimistic: Task = {
+          id: tempId,
+          title: trimmed,
+          description: null,
+          status: "todo",
+          assigneeId: null,
+          dueDate: null,
+          createdAt: new Date().toISOString(),
+        };
+        setTasks((prev) => [optimistic, ...prev]);
+
+        const rollback = (message: string): void => {
+          setTasks((prev) => prev.filter((t) => t.id !== tempId));
+          toast.error(message);
+        };
+
+        try {
+          const res = await createTask({
+            projectId,
+            workspaceId,
+            title: trimmed,
+          });
+          if (!res.ok) {
+            rollback(res.error || "Couldn't add the task.");
+            return;
+          }
+          // Swap temp id for the real one; if realtime already inserted the
+          // real row, drop the duplicate.
+          const realId = res.data.id;
+          setTasks((prev) => {
+            const hasReal = prev.some((t) => t.id === realId);
+            if (hasReal) return prev.filter((t) => t.id !== tempId);
+            return prev.map((t) => (t.id === tempId ? { ...t, id: realId } : t));
+          });
+        } catch {
+          rollback("Couldn't add — check your connection.");
+        }
+      },
+
+      deleteTask: async (taskId) => {
+        const snapshot = tasksRef.current.find((t) => t.id === taskId);
+        if (!snapshot) return;
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+        const rollback = (message: string): void => {
+          setTasks((prev) =>
+            prev.some((t) => t.id === taskId)
+              ? prev
+              : [...prev, snapshot].sort((a, b) =>
+                  a.createdAt < b.createdAt ? 1 : -1,
+                ),
+          );
+          toast.error(message);
+        };
+
+        try {
+          const res = await deleteTask({ taskId, workspaceId, projectId });
+          if (!res.ok) rollback(res.error || "Couldn't delete the task.");
+        } catch {
+          rollback("Couldn't delete — check your connection.");
+        }
+      },
+    }),
+    [projectId, workspaceId],
+  );
 
   const statusFilter = React.useMemo<Set<TaskStatus>>(() => {
     const raw = searchParams.get("status");
@@ -116,10 +249,6 @@ export function ProjectView({
 
   const openTask = filtered.find((t) => t.id === openTaskId) ?? null;
 
-  const onMutateError = React.useCallback((msg: string) => {
-    toast.error(msg);
-  }, []);
-
   return (
     <>
       <div className="space-y-5">
@@ -133,11 +262,7 @@ export function ProjectView({
           onChangeAssignee={(id) => updateUrl({ assignee: id })}
         />
 
-        <CreateTaskInline
-          projectId={projectId}
-          workspaceId={workspaceId}
-          onError={onMutateError}
-        />
+        <CreateTaskInline onCreate={actions.createTask} />
 
         {tasks.length === 0 ? (
           <EmptyTasks />
@@ -149,10 +274,9 @@ export function ProjectView({
               <li key={t.id}>
                 <TaskRow
                   task={t}
-                  workspaceId={workspaceId}
                   members={members}
                   onOpen={() => setOpenTaskId(t.id)}
-                  onError={onMutateError}
+                  onUpdate={(patch) => actions.updateTask(t.id, patch)}
                 />
               </li>
             ))}
@@ -163,13 +287,20 @@ export function ProjectView({
       <TaskDetailSheet
         task={openTask}
         members={members}
-        workspaceId={workspaceId}
-        projectId={projectId}
         open={openTaskId !== null && openTask !== null}
         onOpenChange={(open) => {
           if (!open) setOpenTaskId(null);
         }}
-        onError={onMutateError}
+        onUpdate={(patch) => {
+          if (openTaskId) void actions.updateTask(openTaskId, patch);
+        }}
+        onDelete={() => {
+          if (openTaskId) {
+            const idToDelete = openTaskId;
+            setOpenTaskId(null);
+            void actions.deleteTask(idToDelete);
+          }
+        }}
       />
     </>
   );
