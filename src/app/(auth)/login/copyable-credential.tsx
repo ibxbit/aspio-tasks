@@ -30,13 +30,13 @@ export function CopyableCredential({
       onClick={handleClick}
       title={`Click to copy ${value}`}
       aria-label={`Copy ${value} to clipboard`}
-      className="group inline-flex items-baseline gap-1 font-mono text-white/80 underline-offset-2 hover:text-white hover:underline focus-ring"
+      className="group inline-flex items-baseline gap-1 font-mono text-foreground/80 underline-offset-2 hover:text-foreground hover:underline focus-ring dark:text-white/80 dark:hover:text-white"
     >
       <span>{value}</span>
       {copied ? (
-        <Check className="h-3 w-3 translate-y-0.5 text-emerald-300" />
+        <Check className="h-3 w-3 translate-y-0.5 text-emerald-600 dark:text-emerald-300" />
       ) : (
-        <Copy className="h-3 w-3 translate-y-0.5 text-white/35 transition-colors group-hover:text-white/70" />
+        <Copy className="h-3 w-3 translate-y-0.5 text-muted-foreground/60 transition-colors group-hover:text-foreground/70 dark:text-white/35 dark:group-hover:text-white/70" />
       )}
     </button>
   );

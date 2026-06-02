@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { CardCorners } from "@/components/ui/card-corners";
 import { CreateProjectForm } from "./create-project-form";
+import { LeaveWorkspaceButton } from "./leave-workspace-button";
+import { WorkspaceRealtimeBridge } from "./realtime-bridge";
 
 type TaskStatus = "todo" | "in_progress" | "done";
 
@@ -80,9 +82,34 @@ export default async function WorkspacePage({
   });
 
   const workspaceName = workspace.name;
+  const projectIds = projects.map((p) => p.id);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let myRole: "owner" | "member" | null = null;
+  if (user) {
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", wid)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (membership?.role === "owner" || membership?.role === "member") {
+      myRole = membership.role;
+    }
+  }
+
+  const { count: ownerCount } = await supabase
+    .from("workspace_members")
+    .select("user_id", { count: "exact", head: true })
+    .eq("workspace_id", wid)
+    .eq("role", "owner");
 
   return (
     <div className="space-y-8">
+      <WorkspaceRealtimeBridge workspaceId={wid} projectIds={projectIds} />
       <header className="flex items-end justify-between gap-4">
         <div className="space-y-1.5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -90,6 +117,14 @@ export default async function WorkspacePage({
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">{workspaceName}</h1>
         </div>
+        {myRole !== null ? (
+          <LeaveWorkspaceButton
+            workspaceId={wid}
+            workspaceName={workspaceName}
+            myRole={myRole}
+            isLastOwner={myRole === "owner" && (ownerCount ?? 0) <= 1}
+          />
+        ) : null}
       </header>
 
       <section className="space-y-4">

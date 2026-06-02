@@ -15,6 +15,7 @@ export type TaskStatus = "todo" | "in_progress" | "done";
 export type Member = {
   id: string;
   displayName: string;
+  avatarUrl: string | null;
   role: "owner" | "member";
 };
 

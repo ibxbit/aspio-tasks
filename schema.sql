@@ -22,6 +22,7 @@ drop table if exists public.profiles cascade;
 drop trigger if exists on_auth_user_created on auth.users;
 
 drop function if exists public.rpc_delete_task(uuid);
+drop function if exists public.rpc_delete_project(uuid);
 drop function if exists public.rpc_create_project(uuid, text);
 drop function if exists public.rpc_create_workspace(text);
 drop function if exists public.handle_new_workspace();
@@ -397,12 +398,45 @@ begin
 end;
 $$;
 
+-- Delete a project. Only workspace owners are permitted — matches the
+-- projects_delete_owners RLS policy and keeps the rule in one place.
+create or replace function public.rpc_delete_project(target_project_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  uid uuid := auth.uid();
+  ws_id uuid;
+begin
+  if uid is null then
+    raise exception 'Not authenticated' using errcode = '28000';
+  end if;
+  select workspace_id into ws_id
+    from public.projects
+    where id = target_project_id;
+  if ws_id is null then
+    raise exception 'Project not found' using errcode = 'P0002';
+  end if;
+  if not exists (
+    select 1 from public.workspace_members
+    where workspace_id = ws_id and user_id = uid and role = 'owner'
+  ) then
+    raise exception 'Only workspace owners can delete a project' using errcode = '42501';
+  end if;
+  delete from public.projects where id = target_project_id;
+end;
+$$;
+
 revoke execute on function public.rpc_create_workspace(text) from public;
 revoke execute on function public.rpc_create_project(uuid, text) from public;
 revoke execute on function public.rpc_delete_task(uuid) from public;
+revoke execute on function public.rpc_delete_project(uuid) from public;
 grant execute on function public.rpc_create_workspace(text) to authenticated;
 grant execute on function public.rpc_create_project(uuid, text) to authenticated;
 grant execute on function public.rpc_delete_task(uuid) to authenticated;
+grant execute on function public.rpc_delete_project(uuid) to authenticated;
 
 -- ============================================================
 -- Realtime

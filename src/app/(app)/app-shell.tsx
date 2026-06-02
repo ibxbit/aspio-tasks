@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { signOut } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { CrossMarker } from "@/components/ui/cross-marker";
+import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggleButton } from "@/components/ui/ThemeSwitch";
 import { WorkspaceSwitcher, type WorkspaceSummary } from "./workspace-switcher";
 
@@ -10,6 +11,7 @@ export type SessionUser = {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl: string | null;
 };
 
 type Props = {
@@ -19,15 +21,6 @@ type Props = {
 };
 
 export function AppShell({ user, workspaces, children }: Props): React.ReactElement {
-  const initials =
-    user.displayName
-      .split(/\s+/)
-      .map((p) => p[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?";
-
   return (
     <div className="flex min-h-screen flex-col bg-background font-mono [&_:not(input):not(textarea)]:tracking-tight">
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/65">
@@ -61,12 +54,18 @@ export function AppShell({ user, workspaces, children }: Props): React.ReactElem
               <div className="font-medium text-foreground">{user.displayName}</div>
               <div className="text-muted-foreground tabular-nums">{user.email}</div>
             </div>
-            <div
-              aria-hidden
-              className="flex h-8 w-8 shrink-0 items-center justify-center border border-border bg-accent text-xs font-semibold text-accent-foreground"
+            <Link
+              href="/account"
+              aria-label="Account settings"
+              className="focus-ring"
             >
-              {initials}
-            </div>
+              <Avatar
+                name={user.displayName}
+                src={user.avatarUrl}
+                size={32}
+                className="text-xs"
+              />
+            </Link>
             <ThemeToggleButton variant="circle" start="top-right" className="size-8 border border-border" />
             <form action={signOut}>
               <Button
@@ -109,7 +108,7 @@ export function AppShell({ user, workspaces, children }: Props): React.ReactElem
       <CrossMarker className="fixed bottom-6 left-3 z-50 -translate-x-1/2 translate-y-1/2 sm:bottom-12 sm:left-12 lg:bottom-24 lg:left-24" />
       <CrossMarker className="fixed bottom-6 right-3 z-50 translate-x-1/2 translate-y-1/2 sm:bottom-12 sm:right-12 lg:bottom-24 lg:right-24" />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-14 sm:py-12 lg:px-28">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-10 sm:px-14 sm:pb-28 sm:pt-12 lg:px-28 lg:pb-40">
         {children}
       </main>
     </div>

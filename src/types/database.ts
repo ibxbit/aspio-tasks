@@ -37,6 +37,10 @@ export type Database = {
         Args: { target_task_id: string };
         Returns: undefined;
       };
+      rpc_delete_project: {
+        Args: { target_project_id: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       task_status: "todo" | "in_progress" | "done";

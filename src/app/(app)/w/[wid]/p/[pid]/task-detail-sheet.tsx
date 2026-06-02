@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { Member, Task, TaskPatch, TaskStatus } from "./project-view";
 
@@ -171,8 +172,15 @@ function Body({
 
           <Field label="Assignee">
             <DropdownMenu>
-              <DropdownMenuTrigger className="w-full rounded-md border border-input bg-surface px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-ring">
-                {assignee?.displayName ?? "Unassigned"}
+              <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md border border-input bg-surface px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-ring">
+                {assignee ? (
+                  <>
+                    <Avatar name={assignee.displayName} src={assignee.avatarUrl} size={20} />
+                    <span className="truncate">{assignee.displayName}</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Unassigned</span>
+                )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
                 <DropdownMenuLabel>Assignee</DropdownMenuLabel>
@@ -184,9 +192,10 @@ function Body({
                   <DropdownMenuItem
                     key={m.id}
                     onSelect={() => onUpdate({ assignee_id: m.id })}
-                    className={cn(m.id === task.assigneeId && "bg-muted")}
+                    className={cn("gap-2", m.id === task.assigneeId && "bg-muted")}
                   >
-                    {m.displayName}
+                    <Avatar name={m.displayName} src={m.avatarUrl} size={20} />
+                    <span className="truncate">{m.displayName}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

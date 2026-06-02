@@ -34,7 +34,7 @@ export function SignInForm({ next }: Props): React.ReactElement {
       {state.formError ? (
         <p
           role="alert"
-          className="border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs text-red-200"
+          className="border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200"
         >
           {state.formError}
         </p>
@@ -43,7 +43,7 @@ export function SignInForm({ next }: Props): React.ReactElement {
       <button
         type="submit"
         disabled={isPending}
-        className="mt-2 flex h-11 w-full items-center justify-center bg-white text-[13px] font-semibold uppercase tracking-[0.18em] text-black transition-[background-color,transform] hover:bg-white/90 active:scale-[0.99] disabled:opacity-60"
+        className="mt-2 flex h-11 w-full items-center justify-center bg-foreground text-[13px] font-semibold uppercase tracking-[0.18em] text-background transition-[background-color,transform] hover:bg-foreground/90 active:scale-[0.99] disabled:opacity-60 dark:bg-white dark:text-black dark:hover:bg-white/90"
       >
         {isPending ? "Signing in…" : "Sign in"}
       </button>
@@ -62,7 +62,7 @@ function Field({ id, label, error, ...inputProps }: FieldProps): React.ReactElem
     <div className="space-y-1.5">
       <label
         htmlFor={id}
-        className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55"
+        className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:text-white/55"
       >
         {label}
       </label>
@@ -71,11 +71,11 @@ function Field({ id, label, error, ...inputProps }: FieldProps): React.ReactElem
         name={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="block h-10 w-full border border-white/15 bg-white/[0.03] px-3 text-sm text-white placeholder:text-white/30 transition-colors focus:border-white/40 focus:bg-white/[0.06] focus:outline-none"
+        className="block h-10 w-full border border-border bg-surface px-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-ring focus:outline-none dark:border-white/15 dark:bg-white/[0.03] dark:text-white dark:placeholder:text-white/30 dark:focus:border-white/40 dark:focus:bg-white/[0.06]"
         {...inputProps}
       />
       {error ? (
-        <p id={`${id}-error`} className="text-[11px] text-red-200">
+        <p id={`${id}-error`} className="text-[11px] text-destructive dark:text-red-200">
           {error}
         </p>
       ) : null}

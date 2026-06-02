@@ -30,6 +30,10 @@ export default async function AppLayout({
     typeof profile?.display_name === "string" && profile.display_name.length > 0
       ? profile.display_name
       : (user.email?.split("@")[0] ?? "You");
+  const avatarUrl =
+    typeof profile?.avatar_url === "string" && profile.avatar_url.length > 0
+      ? profile.avatar_url
+      : null;
 
   return (
     <AppShell
@@ -37,6 +41,7 @@ export default async function AppLayout({
         id: user.id,
         email: user.email ?? "",
         displayName,
+        avatarUrl,
       }}
       workspaces={workspaces}
     >

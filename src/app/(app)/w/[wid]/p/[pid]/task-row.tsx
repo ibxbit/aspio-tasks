@@ -4,6 +4,7 @@ import * as React from "react";
 import { Calendar, ChevronRight, UserRound } from "lucide-react";
 import { format, parseISO, isPast, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -209,16 +210,6 @@ function AssigneeButton({
 }): React.ReactElement {
   const current = assigneeId ? members.find((m) => m.id === assigneeId) : null;
 
-  const initials = current
-    ? current.displayName
-        .split(/\s+/)
-        .map((p) => p[0])
-        .filter(Boolean)
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : null;
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -227,9 +218,7 @@ function AssigneeButton({
       >
         {current ? (
           <>
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
-              {initials}
-            </span>
+            <Avatar name={current.displayName} src={current.avatarUrl} size={20} />
             <span className="hidden sm:inline">{current.displayName}</span>
           </>
         ) : (
@@ -247,9 +236,10 @@ function AssigneeButton({
           <DropdownMenuItem
             key={m.id}
             onSelect={() => onChange(m.id)}
-            className={cn(m.id === assigneeId && "bg-muted")}
+            className={cn("gap-2", m.id === assigneeId && "bg-muted")}
           >
-            {m.displayName}
+            <Avatar name={m.displayName} src={m.avatarUrl} size={20} />
+            <span className="truncate">{m.displayName}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

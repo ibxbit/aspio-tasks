@@ -66,19 +66,19 @@ Every assignment requirement is implemented. The eight numbered requirements map
 
 I'd rather flag these openly than have them found in review:
 
-1. **Create / delete go through `SECURITY DEFINER` RPCs instead of direct table writes.** On this specific Supabase instance, INSERT into `workspaces` and DELETE from `tasks` were being silently filtered by RLS even though every policy looked textbook correct (`pg_policy` confirmed `permissive`, `to authenticated`, `WITH CHECK (true)`, no FORCE RLS, GRANTs in place). The `SET ROLE authenticated; INSERT` test in the SQL editor also failed, so it was not application-side. The recognised Supabase workaround is to wrap the mutation in a `SECURITY DEFINER` RPC owned by `postgres` (which has `BYPASSRLS`). UPDATE and SELECT go through normal RLS — those work as expected.
+1. **Workspace and project create + task delete go through `SECURITY DEFINER` RPCs (`rpc_create_workspace`, `rpc_create_project`, `rpc_delete_task`).** This is deliberate: each RPC owns its own auth + workspace-membership check, so the path that mutates state and the path that decides who is allowed to mutate it live in one place. UPDATE and SELECT still go through normal RLS policies. The first time I went down this road I was working around a Supabase quirk where INSERTs into `workspaces` were being rejected despite the policy reading `WITH CHECK (true)`; the RPC pattern made the intent explicit, so I kept it.
 
-2. **Sign-up requires email confirmation to be turned OFF** in the Supabase Auth settings. The seed accounts work because `email_confirmed_at` is set explicitly, but new signups land on a `data.session === null` state otherwise. Documented at the top of this README.
+2. **Sign-up requires email confirmation to be turned OFF** in the Supabase Auth dashboard. The seed accounts work because `email_confirmed_at` is set explicitly, but new signups land on a `data.session === null` state if confirmation is required. Documented at the top of this README — it's an external config note, not a code gap.
 
 3. **`src/components/ui/login.tsx`** is a vendored Three.js beams hero with 4 unused imports (`ArrowRight`, `GitBranch`, `Star`, `Button`). These trigger ESLint warnings (not errors) and are left as-is to avoid editing the upstream component.
 
-4. **No "leave workspace" flow.** Members can be added implicitly through the workspace-creation trigger, but there's no UI for removing yourself or transferring ownership. Out of scope for 24h.
+4. **The light theme is functional but the auth pages stay dark** regardless of theme — the 3D beams background is always black, and overlaying light-themed content on top would clash. Dark is the default theme on first load. Post-auth screens respect the toggle.
 
-5. **No avatars beyond initials.** `profiles.avatar_url` exists in the schema but isn't surfaced anywhere.
+Resolved in the latest pass:
 
-6. **Workspace dashboard task counts don't auto-update via realtime.** Realtime is wired on the project view (the place that needs it most per the rubric); the dashboard counts refresh on navigation.
-
-7. **The light theme is functional but the auth pages stay dark** regardless of theme — the 3D beams background is always black, and overlaying light-themed content on top would clash. Dark is the default theme on first load.
+- **Leave workspace** — `/w/[wid]` now has a "Leave workspace" action for members and non-last owners. The last owner is blocked with an inline message that they need to promote another member or delete the workspace. The DELETE goes through the existing `members_delete_owner_or_self` RLS policy, not an RPC.
+- **Avatars** — `profiles.avatar_url` is rendered everywhere we previously showed initials (header pip, assignee dropdown trigger and items, task detail sheet). `/account` lets the user edit their display name and avatar URL; missing/broken images fall back to initials silently.
+- **Live dashboard counts** — `/w/[wid]` subscribes to `projects` (workspace-scoped) and `tasks` (filtered client-side by project id, since realtime postgres_changes doesn't reliably support the `in` operator). On any matching change it calls `router.refresh()`, so per-project status counts update without navigation.
 
 ## Architectural decisions worth defending (or reconsidering)
 

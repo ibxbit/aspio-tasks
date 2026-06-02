@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectView, type TaskStatus, type Member, type Task } from "./project-view";
 import { OverdueTasksButton } from "./overdue-tasks-button";
+import { DeleteProjectButton } from "./delete-project-button";
 
 export async function generateMetadata({
   params,
@@ -39,7 +40,7 @@ type MemberRow = {
   user_id: string;
   role: "owner" | "member";
 };
-type ProfileRow = { id: string; display_name: string };
+type ProfileRow = { id: string; display_name: string; avatar_url: string | null };
 
 export default async function ProjectPage({
   params,
@@ -88,11 +89,13 @@ export default async function ProjectPage({
     memberIds.length > 0
       ? await supabase
           .from("profiles")
-          .select("id, display_name")
+          .select("id, display_name, avatar_url")
           .in("id", memberIds)
           .returns<ProfileRow[]>()
       : { data: [] as ProfileRow[] };
-  const profileById = new Map((rawProfiles ?? []).map((p) => [p.id, p.display_name]));
+  const profileById = new Map(
+    (rawProfiles ?? []).map((p) => [p.id, { name: p.display_name, avatar: p.avatar_url }]),
+  );
 
   const tasks: Task[] = (rawTasks ?? []).map((t) => ({
     id: t.id,
@@ -104,11 +107,22 @@ export default async function ProjectPage({
     createdAt: t.created_at,
   }));
 
-  const members: Member[] = (rawMembers ?? []).map((m) => ({
-    id: m.user_id,
-    displayName: profileById.get(m.user_id) ?? "Unknown",
-    role: m.role,
-  }));
+  const members: Member[] = (rawMembers ?? []).map((m) => {
+    const profile = profileById.get(m.user_id);
+    return {
+      id: m.user_id,
+      displayName: profile?.name ?? "Unknown",
+      avatarUrl: profile?.avatar ?? null,
+      role: m.role,
+    };
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isOwner =
+    user !== null &&
+    members.some((m) => m.id === user.id && m.role === "owner");
 
   return (
     <div className="space-y-6">
@@ -128,7 +142,16 @@ export default async function ProjectPage({
             {project.name}
           </h1>
         </div>
-        <OverdueTasksButton projectId={project.id} />
+        <div className="flex flex-wrap items-center gap-2">
+          <OverdueTasksButton projectId={project.id} />
+          {isOwner ? (
+            <DeleteProjectButton
+              workspaceId={wid}
+              projectId={project.id}
+              projectName={project.name}
+            />
+          ) : null}
+        </div>
       </header>
 
       <ProjectView
