@@ -55,3 +55,12 @@ schema.sql          tables + RLS + seed, runnable in one execution
 | `pnpm lint`      | ESLint                             |
 | `pnpm typecheck` | `tsc --noEmit`                     |
 | `pnpm db:types`  | Regenerate `src/types/database.ts` |
+
+## Demo accounts
+
+`schema.sql` seeds two accounts so the UI is populated immediately. Password for both is `demo1234`.
+
+| Email            | Owns          | Member of    |
+| ---------------- | ------------- | ------------ |
+| `demo@aspio.dev` | Aspio Studio  | Wright Co.   |
+| `alex@aspio.dev` | Wright Co.    | Aspio Studio |
