@@ -8,20 +8,23 @@ create extension if not exists pgcrypto;
 
 -- ============================================================
 -- Teardown (so this file is re-runnable)
+--
+-- Tables go first: CASCADE removes their triggers, policies, and FKs.
+-- The auth.users trigger has to be dropped explicitly because the table
+-- itself is Supabase-owned and stays.
 -- ============================================================
-drop trigger if exists on_workspace_created on public.workspaces;
+drop table if exists public.tasks cascade;
+drop table if exists public.projects cascade;
+drop table if exists public.workspace_members cascade;
+drop table if exists public.workspaces cascade;
+drop table if exists public.profiles cascade;
+
 drop trigger if exists on_auth_user_created on auth.users;
 
 drop function if exists public.handle_new_workspace();
 drop function if exists public.handle_new_user();
 drop function if exists public.is_workspace_owner(uuid);
 drop function if exists public.is_workspace_member(uuid);
-
-drop table if exists public.tasks cascade;
-drop table if exists public.projects cascade;
-drop table if exists public.workspace_members cascade;
-drop table if exists public.workspaces cascade;
-drop table if exists public.profiles cascade;
 
 drop type if exists public.task_status;
 drop type if exists public.member_role;
